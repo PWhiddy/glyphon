@@ -1,6 +1,5 @@
 use glyphon::{
-    Attrs, Buffer, Color, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea,
-    TextAtlas, TextBounds, TextRenderer,
+    fontdb::{self, Query}, Attrs, Buffer, Color, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer
 };
 use wgpu::{
     CommandEncoderDescriptor, CompositeAlphaMode, DeviceDescriptor, Features, Instance,
@@ -15,7 +14,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 fn main() {
     pollster::block_on(run());
@@ -23,7 +22,7 @@ fn main() {
 
 async fn run() {
     // Set up window
-    let (width, height) = (800, 600);
+    let (width, height) = (1600, 900);
     let event_loop = EventLoop::new().unwrap();
     let window = Arc::new(WindowBuilder::new()
         .with_inner_size(LogicalSize::new(width as f64, height as f64))
@@ -32,7 +31,7 @@ async fn run() {
         .unwrap());
     let size = window.inner_size();
     let scale_factor = window.scale_factor();
-
+    let mut frame_count: u32 = 0;
     // Set up surface
     let instance = Instance::new(InstanceDescriptor::default());
     let adapter = instance
@@ -44,7 +43,7 @@ async fn run() {
             &DeviceDescriptor {
                 label: None,
                 required_features: Features::empty(),
-                required_limits: Limits::downlevel_defaults(),
+                required_limits: Limits::default(), //downlevel_defaults(),
             },
             None,
         )
@@ -65,19 +64,34 @@ async fn run() {
     };
     surface.configure(&device, &config);
 
+
+    //let mut font_db = fontdb::Database::new();
+    //let font_path = Path::new("./MartianMono-Regular.ttf"); // Assuming font is in the project directory
+    //font_db.load_font_file(font_path).unwrap();
+
+
+
+    //font_db.face(id)
+    //let font = font_db. .get_font(font_id);
+    
     // Set up text renderer
     let mut font_system = FontSystem::new();
+
+    //let ids = font_db.query(&Query::)
+
+    //let font = font_system.get_font(font_db)
+    //let font = font_system.get_font(font_id).unwrap();
     let mut cache = SwashCache::new();
     let mut atlas = TextAtlas::new(&device, &queue, swapchain_format);
     let mut text_renderer =
         TextRenderer::new(&mut atlas, &device, MultisampleState::default(), None);
-    let mut buffer = Buffer::new(&mut font_system, Metrics::new(30.0, 42.0));
+    let mut buffer = Buffer::new(&mut font_system, Metrics::new(430.0, 500.0));
 
     let physical_width = (width as f64 * scale_factor) as f32;
     let physical_height = (height as f64 * scale_factor) as f32;
 
     buffer.set_size(&mut font_system, physical_width, physical_height);
-    buffer.set_text(&mut font_system, "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z", Attrs::new().family(Family::SansSerif), Shaping::Advanced);
+    buffer.set_text(&mut font_system, "What's up gamers!", Attrs::new().family(Family::SansSerif), Shaping::Advanced);
     buffer.shape_until_scroll(&mut font_system);
 
     event_loop
@@ -107,14 +121,14 @@ async fn run() {
                                 },
                                 [TextArea {
                                     buffer: &buffer,
-                                    left: 10.0,
-                                    top: 10.0,
-                                    scale: 1.0,
+                                    left: 200.0 + frame_count as f32,// + 100.0*f32::sin(frame_count as f32 * 0.01),
+                                    top: 200.0 + 100.0*f32::cos(frame_count as f32 * 0.01),
+                                    scale: 1.0 + 0.001* frame_count as f32,
                                     bounds: TextBounds {
-                                        left: 0,
+                                        left: 0 + frame_count as i32,
                                         top: 0,
-                                        right: 600,
-                                        bottom: 160,
+                                        right: 1600 * 2,
+                                        bottom: 900 * 2,
                                     },
                                     default_color: Color::rgb(255, 255, 255),
                                 }],
@@ -147,7 +161,7 @@ async fn run() {
 
                         queue.submit(Some(encoder.finish()));
                         frame.present();
-
+                        frame_count += 1;
                         atlas.trim();
                     }
                     WindowEvent::CloseRequested => target.exit(),
